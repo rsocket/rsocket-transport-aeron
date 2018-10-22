@@ -1,0 +1,30 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'com.jfrog.artifactory' version '4.7.3'
+    id 'com.jfrog.bintray' version '1.8.4'
+}
+
+group = 'io.rsocket'
+description = 'Aeron RSocket transport'
+
+repositories {
+    jcenter()
+}
+
+ext {
+    rsocketVersion    = "0.11.9"
+    aeronVersion      = "1.11.2"
+}
+
+dependencies {
+    compile "io.rsocket:rsocket-core:$rsocketVersion"
+
+    compile "io.aeron:aeron-all:$aeronVersion"
+
+    testCompile "io.rsocket:rsocket-test:$rsocketVersion"
+    testCompile 'junit:junit:4.12'
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
