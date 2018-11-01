@@ -11,18 +11,24 @@ import io.rsocket.aeron.server.AeronServerTransport;
 import io.rsocket.util.DefaultPayload;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import org.junit.Before;
 import org.junit.Test;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.WorkQueueProcessor;
 
 public class AeronTest {
   public static final String aeronUrl = "aeron:udp?endpoint=127.0.0.1:39790";
-
+  
+  Aeron aeron;
+  
+  @Before
+  private void setup() {
+    MediaDriverHolder.getInstance();
+    aeron = Aeron.connect();
+  }
+  
   @Test
   public void test() throws Exception {
-
-    MediaDriverHolder.getInstance();
-    Aeron aeron = Aeron.connect();
 
     ByteBufAllocator allocator = ByteBufAllocator.DEFAULT;
 
