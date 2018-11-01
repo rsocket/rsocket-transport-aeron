@@ -28,10 +28,8 @@ import reactor.core.publisher.WorkQueueProcessor;
 
 public final class AeronPongServer {
   static {
-    final io.aeron.driver.MediaDriver.Context ctx =
-        new io.aeron.driver.MediaDriver.Context()
-            .threadingMode(ThreadingMode.SHARED_NETWORK)
-            .dirDeleteOnStart(true);
+    final io.aeron.driver.MediaDriver.Context ctx = new io.aeron.driver.MediaDriver.Context()
+        .threadingMode(ThreadingMode.SHARED_NETWORK).dirDeleteOnStart(true);
     MediaDriver.launch(ctx);
   }
 
@@ -42,14 +40,11 @@ public final class AeronPongServer {
     ByteBufAllocator allocator = ByteBufAllocator.DEFAULT;
 
     WorkQueueProcessor<Runnable> workQueueProcessor = WorkQueueProcessor.create();
-    workQueueProcessor
-        .doOnNext(Runnable::run)
-        .doOnError(Throwable::printStackTrace)
-        .onErrorResume(t -> Mono.empty())
-        .subscribe();
+    workQueueProcessor.doOnNext(Runnable::run).doOnError(Throwable::printStackTrace)
+        .onErrorResume(t -> Mono.empty()).subscribe();
 
-    AeronServerTransport transport =
-        new AeronServerTransport(workQueueProcessor, aeron, aeronUrl, allocator);
+    AeronServerTransport transport = new AeronServerTransport(workQueueProcessor, aeron, aeronUrl,
+        allocator);
     RSocketFactory.receive().acceptor(new PingHandler()).transport(transport).start();
   }
 }

@@ -38,11 +38,8 @@ class AeronClientSetupRule extends ClientSetupRule<String, Closeable> {
     ByteBufAllocator allocator = ByteBufAllocator.DEFAULT;
 
     WorkQueueProcessor<Runnable> workQueueProcessor = WorkQueueProcessor.create();
-    workQueueProcessor
-        .doOnNext(Runnable::run)
-        .doOnError(Throwable::printStackTrace)
-        .onErrorResume(t -> Mono.empty())
-        .subscribe();
+    workQueueProcessor.doOnNext(Runnable::run).doOnError(Throwable::printStackTrace)
+        .onErrorResume(t -> Mono.empty()).subscribe();
 
     server = new AeronServerTransport(workQueueProcessor, aeron, aeronUrl, allocator);
     client = new AeronClientTransport(workQueueProcessor, aeron, aeronUrl, allocator);

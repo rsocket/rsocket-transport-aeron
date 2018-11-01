@@ -8,6 +8,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import org.agrona.DirectBuffer;
 import org.agrona.io.DirectBufferInputStream;
 import org.slf4j.Logger;
@@ -17,32 +20,24 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Operators;
 import reactor.core.publisher.WorkQueueProcessor;
 
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
-import java.util.concurrent.atomic.AtomicLongFieldUpdater;
-
 public class AeronSubscriptionFlux extends Flux<ByteBuf>
     implements org.reactivestreams.Subscription, FragmentHandler {
-  @SuppressWarnings("rawtypes")
-  static final AtomicIntegerFieldUpdater<AeronSubscriptionFlux> ONCE =
-      AtomicIntegerFieldUpdater.newUpdater(AeronSubscriptionFlux.class, "once");
+  static final AtomicIntegerFieldUpdater<AeronSubscriptionFlux> ONCE = AtomicIntegerFieldUpdater
+      .newUpdater(AeronSubscriptionFlux.class, "once");
 
-  @SuppressWarnings("rawtypes")
-  static final AtomicIntegerFieldUpdater<AeronSubscriptionFlux> WIP =
-      AtomicIntegerFieldUpdater.newUpdater(AeronSubscriptionFlux.class, "wip");
+  static final AtomicIntegerFieldUpdater<AeronSubscriptionFlux> WIP = AtomicIntegerFieldUpdater
+      .newUpdater(AeronSubscriptionFlux.class, "wip");
 
-  @SuppressWarnings("rawtypes")
-  static final AtomicIntegerFieldUpdater<AeronSubscriptionFlux> MISSED =
-      AtomicIntegerFieldUpdater.newUpdater(AeronSubscriptionFlux.class, "missed");
+  static final AtomicIntegerFieldUpdater<AeronSubscriptionFlux> MISSED = AtomicIntegerFieldUpdater
+      .newUpdater(AeronSubscriptionFlux.class, "missed");
 
-  @SuppressWarnings("rawtypes")
-  static final AtomicLongFieldUpdater<AeronSubscriptionFlux> REQUESTED =
-      AtomicLongFieldUpdater.newUpdater(AeronSubscriptionFlux.class, "requested");
+  static final AtomicLongFieldUpdater<AeronSubscriptionFlux> REQUESTED = AtomicLongFieldUpdater
+      .newUpdater(AeronSubscriptionFlux.class, "requested");
 
   private static final Logger logger = LoggerFactory.getLogger(AeronSubscriptionFlux.class);
   private static final int EFFORT = 8;
-  private static final ThreadLocal<DirectBufferInputStream> DIRECT_BUFFER_INPUT_STREAM =
-      ThreadLocal.withInitial(DirectBufferInputStream::new);
+  private static final ThreadLocal<DirectBufferInputStream> DIRECT_BUFFER_INPUT_STREAM = ThreadLocal
+      .withInitial(DirectBufferInputStream::new);
   private final WorkQueueProcessor<Runnable> workQueueProcessor;
   private final Subscription subscription;
   private final ByteBufAllocator allocator;
@@ -55,11 +50,8 @@ public class AeronSubscriptionFlux extends Flux<ByteBuf>
   volatile CoreSubscriber<? super ByteBuf> actual;
   volatile boolean cancelled;
 
-  AeronSubscriptionFlux(
-      String name,
-      WorkQueueProcessor<Runnable> workQueueProcessor,
-      Subscription subscription,
-      ByteBufAllocator allocator) {
+  AeronSubscriptionFlux(String name, WorkQueueProcessor<Runnable> workQueueProcessor,
+      Subscription subscription, ByteBufAllocator allocator) {
     this.name = name;
     this.workQueueProcessor = workQueueProcessor;
     this.subscription = subscription;
@@ -67,10 +59,8 @@ public class AeronSubscriptionFlux extends Flux<ByteBuf>
     this.assembler = new FragmentAssembler(this::onFragment);
   }
 
-  public static AeronSubscriptionFlux create(
-      String name,
-      WorkQueueProcessor<Runnable> workQueueProcessor,
-      Subscription subscription,
+  public static AeronSubscriptionFlux create(String name,
+      WorkQueueProcessor<Runnable> workQueueProcessor, Subscription subscription,
       ByteBufAllocator allocator) {
     return new AeronSubscriptionFlux(name, workQueueProcessor, subscription, allocator);
   }
@@ -86,8 +76,7 @@ public class AeronSubscriptionFlux extends Flux<ByteBuf>
         this.actual = null;
       }
     } else {
-      Operators.error(
-          actual,
+      Operators.error(actual,
           new IllegalStateException("AeronSubscriptionFlux allows only a single Subscriber"));
     }
   }
@@ -109,7 +98,7 @@ public class AeronSubscriptionFlux extends Flux<ByteBuf>
   }
 
   void emit() {
-    for (; ; ) {
+    for (;;) {
       MISSED.set(this, 0);
 
       long effort = EFFORT;
@@ -142,7 +131,7 @@ public class AeronSubscriptionFlux extends Flux<ByteBuf>
     cancelled = true;
     actual = null;
   }
-  
+
   @Override
   public void onFragment(DirectBuffer buffer, int offset, int length, Header header) {
     try {
@@ -156,7 +145,7 @@ public class AeronSubscriptionFlux extends Flux<ByteBuf>
 
       System.out.println("actual " + toString());
       actual.onNext(byteBuf);
-      
+
       Operators.addCap(REQUESTED, this, -1);
     } catch (Throwable t) {
       logger.error("error receiving bytes", t);

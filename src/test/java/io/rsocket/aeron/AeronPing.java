@@ -22,11 +22,10 @@ import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.aeron.client.AeronClientTransport;
 import io.rsocket.test.PingClient;
+import java.time.Duration;
 import org.HdrHistogram.Recorder;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.WorkQueueProcessor;
-
-import java.time.Duration;
 
 public final class AeronPing {
 
@@ -34,25 +33,20 @@ public final class AeronPing {
     Aeron aeron = Aeron.connect();
     ByteBufAllocator allocator = ByteBufAllocator.DEFAULT;
     WorkQueueProcessor<Runnable> workQueueProcessor = WorkQueueProcessor.create();
-    workQueueProcessor
-        .doOnNext(Runnable::run)
-        .doOnError(Throwable::printStackTrace)
-        .onErrorResume(t -> Mono.empty())
-        .subscribe();
+    workQueueProcessor.doOnNext(Runnable::run).doOnError(Throwable::printStackTrace)
+        .onErrorResume(t -> Mono.empty()).subscribe();
 
     String aeronUrl = "aeron:udp?endpoint=127.0.0.1:39790";
 
-    AeronClientTransport aeronTransportClient =
-        new AeronClientTransport(workQueueProcessor, aeron, aeronUrl, allocator);
+    AeronClientTransport aeronTransportClient = new AeronClientTransport(workQueueProcessor, aeron,
+        aeronUrl, allocator);
 
     Mono<RSocket> client = RSocketFactory.connect().transport(aeronTransportClient).start();
     PingClient pingClient = new PingClient(client);
     Recorder recorder = pingClient.startTracker(Duration.ofSeconds(1));
     final int count = 1_000_000_000;
-    pingClient
-        .startPingPong(count, recorder)
-        .doOnTerminate(() -> System.out.println("Sent " + count + " messages."))
-        .blockLast();
+    pingClient.startPingPong(count, recorder)
+        .doOnTerminate(() -> System.out.println("Sent " + count + " messages.")).blockLast();
 
     System.exit(0);
   }

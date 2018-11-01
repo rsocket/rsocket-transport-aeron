@@ -1,6 +1,10 @@
 package io.rsocket.aeron;
 
-import io.aeron.*;
+import io.aeron.Aeron;
+import io.aeron.ConcurrentPublication;
+import io.aeron.FragmentAssembler;
+import io.aeron.Publication;
+import io.aeron.Subscription;
 import io.aeron.logbuffer.FragmentHandler;
 import io.aeron.logbuffer.Header;
 import io.netty.buffer.ByteBuf;
@@ -8,16 +12,15 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.rsocket.aeron.reactor.AeronPublicationSubscriber;
 import io.rsocket.aeron.reactor.AeronSubscriptionFlux;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ForkJoinPool;
+import java.util.function.Function;
 import org.agrona.DirectBuffer;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Operators;
 import reactor.core.publisher.WorkQueueProcessor;
-
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ForkJoinPool;
-import java.util.function.Function;
 
 public class AeronPublicationSubscriberTest {
   @Test
@@ -31,32 +34,25 @@ public class AeronPublicationSubscriberTest {
     WorkQueueProcessor<Runnable> processor = WorkQueueProcessor.create();
     processor.doOnNext(Runnable::run).subscribe();
 
-    Function<? super Publisher<ByteBuf>, ? extends Publisher<Object>> lift =
-        Operators.lift(
-            (scannable, coreSubscriber) ->
-                AeronPublicationSubscriber.create("test", processor, coreSubscriber, publication));
+    Function<? super Publisher<ByteBuf>, ? extends Publisher<Object>> lift = Operators
+        .lift((scannable, coreSubscriber) -> AeronPublicationSubscriber.create("test", processor,
+            coreSubscriber, publication));
 
     CountDownLatch latch = new CountDownLatch(count);
-    ForkJoinPool.commonPool()
-        .execute(
-            () -> {
-              while (true) {
-                subscription.poll(
-                    new FragmentAssembler(
-                        new FragmentHandler() {
-                          @Override
-                          public void onFragment(
-                              DirectBuffer buffer, int offset, int length, Header header) {
-                            long count1 = latch.getCount();
-                            if (count1 % 10_000 == 0) {
-                              System.out.println("here " + count1);
-                            }
-                            latch.countDown();
-                          }
-                        }),
-                    4096);
-              }
-            });
+    ForkJoinPool.commonPool().execute(() -> {
+      while (true) {
+        subscription.poll(new FragmentAssembler(new FragmentHandler() {
+          @Override
+          public void onFragment(DirectBuffer buffer, int offset, int length, Header header) {
+            long count1 = latch.getCount();
+            if (count1 % 10_000 == 0) {
+              System.out.println("here " + count1);
+            }
+            latch.countDown();
+          }
+        }), 4096);
+      }
+    });
 
     Flux.range(1, count).map(i -> Unpooled.buffer().writeInt(i)).transform(lift).blockLast();
     latch.await();
@@ -74,24 +70,21 @@ public class AeronPublicationSubscriberTest {
     WorkQueueProcessor<Runnable> processor = WorkQueueProcessor.create();
     processor.doOnNext(Runnable::run).subscribe();
 
-    Function<? super Publisher<ByteBuf>, ? extends Publisher<Object>> lift =
-        Operators.lift(
-            (scannable, coreSubscriber) ->
-                AeronPublicationSubscriber.create("test", processor, coreSubscriber, publication));
+    Function<? super Publisher<ByteBuf>, ? extends Publisher<Object>> lift = Operators
+        .lift((scannable, coreSubscriber) -> AeronPublicationSubscriber.create("test", processor,
+            coreSubscriber, publication));
 
     CountDownLatch latch = new CountDownLatch(count);
 
     AeronSubscriptionFlux.create("test", processor, subscription, ByteBufAllocator.DEFAULT)
-        .doOnNext(
-            b -> {
-              long count1 = latch.getCount();
-              if (count1 % 100_000 == 0) {
-                System.out.println(Thread.currentThread().getName() + " - here " + count1);
-              }
-              latch.countDown();
-              b.release();
-            })
-        .subscribe();
+        .doOnNext(b -> {
+          long count1 = latch.getCount();
+          if (count1 % 100_000 == 0) {
+            System.out.println(Thread.currentThread().getName() + " - here " + count1);
+          }
+          latch.countDown();
+          b.release();
+        }).subscribe();
 
     Flux.range(1, count).map(i -> Unpooled.buffer().writeInt(i)).transform(lift).blockLast();
     latch.await();

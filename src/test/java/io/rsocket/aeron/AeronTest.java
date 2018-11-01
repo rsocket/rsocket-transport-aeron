@@ -9,12 +9,11 @@ import io.rsocket.RSocketFactory;
 import io.rsocket.aeron.client.AeronClientTransport;
 import io.rsocket.aeron.server.AeronServerTransport;
 import io.rsocket.util.DefaultPayload;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import org.junit.Test;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.WorkQueueProcessor;
-
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
 
 public class AeronTest {
   public static final String aeronUrl = "aeron:udp?endpoint=127.0.0.1:39790";
@@ -28,47 +27,31 @@ public class AeronTest {
     ByteBufAllocator allocator = ByteBufAllocator.DEFAULT;
 
     WorkQueueProcessor<Runnable> workQueueProcessor = WorkQueueProcessor.create();
-    workQueueProcessor
-        .doOnNext(Runnable::run)
-        .doOnError(Throwable::printStackTrace)
-        .onErrorResume(t -> Mono.empty())
-        .subscribe();
+    workQueueProcessor.doOnNext(Runnable::run).doOnError(Throwable::printStackTrace)
+        .onErrorResume(t -> Mono.empty()).subscribe();
 
     AeronClientTransport client;
     client = new AeronClientTransport(workQueueProcessor, aeron, aeronUrl, allocator);
 
     CountDownLatch latch = new CountDownLatch(1);
-    Executors.newSingleThreadExecutor()
-        .execute(
-            () -> {
-              WorkQueueProcessor<Runnable> workQueueProcessor1 = WorkQueueProcessor.create();
-              workQueueProcessor1
-                  .doOnNext(Runnable::run)
-                  .doOnError(Throwable::printStackTrace)
-                  .onErrorResume(t -> Mono.empty())
-                  .subscribe();
+    Executors.newSingleThreadExecutor().execute(() -> {
+      WorkQueueProcessor<Runnable> workQueueProcessor1 = WorkQueueProcessor.create();
+      workQueueProcessor1.doOnNext(Runnable::run).doOnError(Throwable::printStackTrace)
+          .onErrorResume(t -> Mono.empty()).subscribe();
 
-              AeronServerTransport server;
+      AeronServerTransport server;
 
-              server = new AeronServerTransport(workQueueProcessor1, aeron, aeronUrl, allocator);
-              RSocketFactory.receive()
-                  .acceptor(
-                      (setup, sendingSocket) ->
-                          Mono.just(
-                              new AbstractRSocket() {
-                                @Override
-                                public Mono<Payload> requestResponse(Payload payload) {
-                                  System.out.println("got from client ->" + payload.getDataUtf8());
-                                  return Mono.just(
-                                      DefaultPayload.create("server sending response"));
-                                }
-                              }))
-                  .transport(server)
-                  .start()
-                  .block();
+      server = new AeronServerTransport(workQueueProcessor1, aeron, aeronUrl, allocator);
+      RSocketFactory.receive().acceptor((setup, sendingSocket) -> Mono.just(new AbstractRSocket() {
+        @Override
+        public Mono<Payload> requestResponse(Payload payload) {
+          System.out.println("got from client ->" + payload.getDataUtf8());
+          return Mono.just(DefaultPayload.create("server sending response"));
+        }
+      })).transport(server).start().block();
 
-              latch.countDown();
-            });
+      latch.countDown();
+    });
 
     latch.await();
 

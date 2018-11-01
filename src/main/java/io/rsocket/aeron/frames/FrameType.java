@@ -17,14 +17,14 @@
 package io.rsocket.aeron.frames;
 
 import io.rsocket.Frame;
-
 import java.util.Arrays;
 
 /**
  * Types of {@link Frame} that can be sent.
  *
- * @see <a href="https://github.com/rsocket/rsocket/blob/master/Protocol.md#frame-types">Frame
- *     Types</a>
+ * @see <a href=
+ *      "https://github.com/rsocket/rsocket/blob/master/Protocol.md#frame-types">Frame
+ *      Types</a>
  */
 public enum FrameType {
 
@@ -35,7 +35,7 @@ public enum FrameType {
 
   SETUP_COMPLETE(0x02);
 
-  /** The size of the encoded frame type */
+  /** The size of the encoded frame type. */
   static final int ENCODED_SIZE = 6;
 
   private static final FrameType[] FRAME_TYPES_BY_ENCODED_TYPE;

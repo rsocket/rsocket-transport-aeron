@@ -6,7 +6,8 @@ import io.netty.buffer.ByteBufAllocator;
 public final class AeronPayloadFlyweight {
   private static final short VERSION = 0;
 
-  private AeronPayloadFlyweight() {}
+  private AeronPayloadFlyweight() {
+  }
 
   public static FrameType frameType(ByteBuf byteBuf) {
     int anInt = byteBuf.getInt(Short.BYTES);

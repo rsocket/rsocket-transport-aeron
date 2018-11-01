@@ -7,6 +7,10 @@ import io.netty.buffer.ByteBufUtil;
 import io.netty.util.ReferenceCountUtil;
 import io.rsocket.aeron.util.Constants;
 import io.rsocket.aeron.util.NotConnectedException;
+import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.ManyToOneConcurrentArrayQueue;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -17,18 +21,13 @@ import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Operators;
 import reactor.core.publisher.WorkQueueProcessor;
 
-import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
-import java.util.concurrent.atomic.AtomicLongFieldUpdater;
-
 public class AeronPublicationSubscriber extends AtomicBoolean
     implements Subscription, CoreSubscriber<ByteBuf> {
   private static final Logger logger = LoggerFactory.getLogger(AeronPublicationSubscriber.class);
-  private static final ThreadLocal<BufferClaim> BUFFER_CLAIMS =
-      ThreadLocal.withInitial(BufferClaim::new);
-  private static final ThreadLocal<UnsafeBuffer> UNSAFE_BUFFER =
-      ThreadLocal.withInitial(UnsafeBuffer::new);
+  private static final ThreadLocal<BufferClaim> BUFFER_CLAIMS = ThreadLocal
+      .withInitial(BufferClaim::new);
+  private static final ThreadLocal<UnsafeBuffer> UNSAFE_BUFFER = ThreadLocal
+      .withInitial(UnsafeBuffer::new);
 
   private static final int BUFFER_SIZE = 128;
   private static final int REFILL = BUFFER_SIZE / 3;
@@ -41,27 +40,24 @@ public class AeronPublicationSubscriber extends AtomicBoolean
   private volatile ByteBuf currentWorkingFrame;
   private Subscription subscription;
 
-  private AtomicIntegerFieldUpdater<AeronPublicationSubscriber> MISSED =
-      AtomicIntegerFieldUpdater.newUpdater(AeronPublicationSubscriber.class, "missed");
+  private AtomicIntegerFieldUpdater<AeronPublicationSubscriber> MISSED = AtomicIntegerFieldUpdater
+      .newUpdater(AeronPublicationSubscriber.class, "missed");
   private volatile int missed;
-  private AtomicIntegerFieldUpdater<AeronPublicationSubscriber> WIP =
-      AtomicIntegerFieldUpdater.newUpdater(AeronPublicationSubscriber.class, "wip");
+  private AtomicIntegerFieldUpdater<AeronPublicationSubscriber> WIP = AtomicIntegerFieldUpdater
+      .newUpdater(AeronPublicationSubscriber.class, "wip");
   private volatile int wip;
-  private AtomicLongFieldUpdater<AeronPublicationSubscriber> REQUESTED =
-      AtomicLongFieldUpdater.newUpdater(AeronPublicationSubscriber.class, "requested");
+  private AtomicLongFieldUpdater<AeronPublicationSubscriber> REQUESTED = AtomicLongFieldUpdater
+      .newUpdater(AeronPublicationSubscriber.class, "requested");
   private volatile long requested;
 
-  private AtomicLongFieldUpdater<AeronPublicationSubscriber> REQUESTED_UPSTREAM =
-      AtomicLongFieldUpdater.newUpdater(AeronPublicationSubscriber.class, "requestedUpstream");
+  private AtomicLongFieldUpdater<AeronPublicationSubscriber> REQUESTED_UPSTREAM = AtomicLongFieldUpdater
+      .newUpdater(AeronPublicationSubscriber.class, "requestedUpstream");
   private volatile long requestedUpstream;
 
   private final String name;
-  
-  AeronPublicationSubscriber(
-      String name,
-      WorkQueueProcessor<Runnable> workQueueProcessor,
-      CoreSubscriber<? super ByteBuf> actual,
-      Publication publication) {
+
+  AeronPublicationSubscriber(String name, WorkQueueProcessor<Runnable> workQueueProcessor,
+      CoreSubscriber<? super ByteBuf> actual, Publication publication) {
     this.name = name;
     this.workQueueProcessor = workQueueProcessor;
     this.actual = actual;
@@ -69,10 +65,8 @@ public class AeronPublicationSubscriber extends AtomicBoolean
     this.frameQueue = new ManyToOneConcurrentArrayQueue<>(BUFFER_SIZE);
   }
 
-  public static AeronPublicationSubscriber create(
-      String name,
-      WorkQueueProcessor<Runnable> workQueueProcessor,
-      CoreSubscriber<? super ByteBuf> actual,
+  public static AeronPublicationSubscriber create(String name,
+      WorkQueueProcessor<Runnable> workQueueProcessor, CoreSubscriber<? super ByteBuf> actual,
       Publication publication) {
     return new AeronPublicationSubscriber(name, workQueueProcessor, actual, publication);
   }
@@ -134,7 +128,7 @@ public class AeronPublicationSubscriber extends AtomicBoolean
   }
 
   private void emit() {
-    for (; ; ) {
+    for (;;) {
       MISSED.set(this, 0);
 
       while (!frameQueue.isEmpty()) {
@@ -146,11 +140,12 @@ public class AeronPublicationSubscriber extends AtomicBoolean
           if (tryClaimOrOffer(currentWorkingFrame)) {
             Operators.addCap(REQUESTED, this, -1);
             long l = Operators.addCap(REQUESTED_UPSTREAM, this, -1);
-  
+
             if (logger.isDebugEnabled()) {
-              logger.debug(name + " emitted frame: \n{}\n", ByteBufUtil.prettyHexDump(currentWorkingFrame));
+              logger.debug(name + " emitted frame: \n{}\n",
+                  ByteBufUtil.prettyHexDump(currentWorkingFrame));
             }
-  
+
             currentWorkingFrame.release();
             currentWorkingFrame = null;
             if (l < REFILL) {
