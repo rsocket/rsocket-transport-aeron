@@ -50,6 +50,8 @@ public class AeronDuplexConnection implements DuplexConnection {
 
   @Override
   public void dispose() {
-    onClose.onComplete();
+    if (!onClose.isDisposed()) {
+      onClose.onComplete();
+    }
   }
 }
