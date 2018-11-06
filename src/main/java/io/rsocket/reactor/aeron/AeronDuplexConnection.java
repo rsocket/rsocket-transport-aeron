@@ -18,6 +18,13 @@ public class AeronDuplexConnection implements DuplexConnection {
   private final AeronInbound inbound;
   private final AeronOutbound outbound;
 
+  // temp
+  private String name;
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
   public AeronDuplexConnection(AeronInbound inbound, AeronOutbound outbound) {
     this.inbound = inbound;
     this.outbound = outbound;
@@ -27,12 +34,23 @@ public class AeronDuplexConnection implements DuplexConnection {
 
   @Override
   public Mono<Void> send(Publisher<Frame> frames) {
-    return outbound.send(Flux.from(frames).map(Frame::content).map(this::toByteBuffer)).then();
+    return outbound
+        .send(
+            Flux.from(frames)
+                .log(name + " DuplexConn send -> ")
+                .map(Frame::content)
+                .map(this::toByteBuffer))
+        .then()
+        .log(name + " DuplexConn send fully -> ");
   }
 
   @Override
   public Flux<Frame> receive() {
-    return inbound.receive().map(this::toByteBuf).map(Frame::from);
+    return inbound
+        .receive()
+        .map(this::toByteBuf)
+        .map(Frame::from)
+        .log(name + " DuplexConn receive -> ");
   }
 
   private ByteBuf toByteBuf(ByteBuffer byteBuffer) {
