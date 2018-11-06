@@ -34,6 +34,9 @@ public class AeronDuplexConnection implements DuplexConnection {
 
   @Override
   public Mono<Void> send(Publisher<Frame> frames) {
+
+//    return Flux.from(frames).collectMap(this::sendOne).then();
+
     return outbound
         .send(
             Flux.from(frames)
@@ -42,6 +45,19 @@ public class AeronDuplexConnection implements DuplexConnection {
                 .map(this::toByteBuffer))
         .then()
         .log(name + " DuplexConn send fully -> ");
+  }
+
+  @Override
+  public Mono<Void> sendOne(Frame frame) {
+    return outbound
+        .send(
+            Mono.just(frame)
+                .log(name + " DuplexConn sendOne -> ")
+                .map(Frame::content)
+                .map(this::toByteBuffer))
+        .then()
+        .log(name + " DuplexConn sendOne then-> ")
+        ;
   }
 
   @Override

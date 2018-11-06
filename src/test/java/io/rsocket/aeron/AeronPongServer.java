@@ -45,6 +45,6 @@ public final class AeronPongServer {
 
     AeronServerTransport transport = new AeronServerTransport(workQueueProcessor, aeron, aeronUrl,
         allocator);
-    RSocketFactory.receive().acceptor(new PingHandler()).transport(transport).start();
+    RSocketFactory.receive().acceptor(new PingHandler()).transport(transport).start().subscribe();
   }
 }

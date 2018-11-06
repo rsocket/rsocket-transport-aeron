@@ -47,11 +47,11 @@ public class ServerRunner {
         //        .transport(TcpServerTransport.create("localhost", 7000))
         .transport(() -> new AeronServerTransport(options -> options.serverChannel(serverChannel)))
         .start()
-        .block();
+        .subscribe();
 
     System.err.println("start 2");
 
-    RSocket socket =
+//    RSocket socket =
         RSocketFactory.connect()
 //                        .transport(() -> TcpClientTransport.create("localhost", 7000))
             .transport(
@@ -61,21 +61,26 @@ public class ServerRunner {
                           options.serverChannel(serverChannel);
                           options.clientChannel(clientChannel);
                         }))
-            .start().log("RSocketFactory ### ")
-            .block();
+            .start()
+            .log("RSocketFactory ### ")
+            .subscribe(rSocket -> {
+              System.err.println("start " + rSocket);
 
-    System.err.println("start " + socket);
+              rSocket
+                  .requestStream(DefaultPayload.create("Hello"))
+                  .log("receive ")
+                  .map(Payload::getDataUtf8)
+                  .doOnNext(System.out::println)
+                  .take(10)
+                  .then()
+                  .doFinally(signalType -> rSocket.dispose())
+                  .then()
+                  .subscribe();
+            });
 
-    socket
-        .requestStream(DefaultPayload.create("Hello"))
-        .log("receive ")
-        .map(Payload::getDataUtf8)
-        .doOnNext(System.out::println)
-        .take(10)
-        .then()
-        .doFinally(signalType -> socket.dispose())
-        .then()
-        .block();
+
+
+
 
     System.err.println("join");
     Thread.currentThread().join();
