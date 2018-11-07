@@ -15,6 +15,7 @@ public class AeronServerTransport implements ServerTransport<AeronServerWrapper>
 
   @Override
   public Mono<AeronServerWrapper> start(ConnectionAcceptor acceptor) {
-    return Mono.fromSupplier(() -> new AeronServerWrapper(acceptor, aeronOptions));
+    return Mono.fromSupplier(() -> new AeronServerWrapper(acceptor, aeronOptions))
+        .log("AeronServerTransport start()");
   }
 }

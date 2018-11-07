@@ -8,7 +8,7 @@ import java.time.Duration;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class ServerRunner {
+public class RsocketServerRunner {
 
   public static void main(String[] args) throws Exception {
 
@@ -32,32 +32,6 @@ public class ServerRunner {
                 new AeronServerTransport(options -> options.serverChannel(Channels.serverChannel)))
         .start()
         .subscribe();
-
-    // start client
-    RSocketFactory.connect()
-        .transport(
-            () ->
-                new AeronClientTransport(
-                    options -> {
-                      options.serverChannel(Channels.serverChannel);
-                      options.clientChannel(Channels.clientChannel);
-                    }))
-        .start()
-        .subscribe(
-            rSocket -> {
-              System.err.println("start " + rSocket);
-
-              rSocket
-                  .requestStream(DefaultPayload.create("Hello"))
-                  .log("receive ")
-                  .map(Payload::getDataUtf8)
-                  .doOnNext(System.out::println)
-                  .take(10)
-                  .then()
-                  .doFinally(signalType -> rSocket.dispose())
-                  .then()
-                  .subscribe();
-            });
 
     System.err.println("wait for the end");
     Thread.currentThread().join();
