@@ -143,7 +143,7 @@ public class AeronSubscriptionFlux extends Flux<ByteBuf>
         logger.debug(name + " receiving:\n{}\n", ByteBufUtil.prettyHexDump(byteBuf));
       }
 
-      System.out.println("actual " + toString());
+//      System.out.println("actual " + toString());
       actual.onNext(byteBuf);
 
       Operators.addCap(REQUESTED, this, -1);
