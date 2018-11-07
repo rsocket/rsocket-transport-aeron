@@ -16,12 +16,14 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Operators;
 import reactor.core.publisher.WorkQueueProcessor;
 
+@Ignore
 public class AeronPublicationSubscriberTest {
   private final int count = 10_000_000;
 
@@ -46,7 +48,7 @@ public class AeronPublicationSubscriberTest {
         int poll = subscription.poll(new FragmentAssembler((buffer, offset, length, header) -> {
           long count1 = latch.getCount();
           if (count1 % 10_000 == 0) {
-            System.out.println("here " + count1);
+//            System.out.println("here " + count1);
           }
           latch.countDown();
         }), 4096);
@@ -90,12 +92,12 @@ public class AeronPublicationSubscriberTest {
         .doOnNext(b -> {
           long count1 = latch.getCount();
           if (count1 == 0) {
-            System.out.println("Done");
+//            System.out.println("Done");
           }
           else if (count1 % 100_000 == 0) {
-            System.out.println(Thread.currentThread().getName() + " - here " + count1);
+//            System.out.println(Thread.currentThread().getName() + " - here " + count1);
           }
-          System.out.println(ByteBufUtil.prettyHexDump(b));
+//          System.out.println(ByteBufUtil.prettyHexDump(b));
 
           latch.countDown();
           b.release();
