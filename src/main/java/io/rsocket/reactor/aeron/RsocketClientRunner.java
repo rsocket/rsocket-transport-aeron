@@ -18,6 +18,7 @@ public class RsocketClientRunner {
                       options.clientChannel(Channels.clientChannel);
                     }))
         .start()
+        .log("client connect() ")
         .subscribe(
             rSocket -> {
               System.err.println("start " + rSocket);
