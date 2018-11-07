@@ -3,14 +3,18 @@ package io.rsocket.reactor.aeron;
 import io.rsocket.AbstractRSocket;
 import io.rsocket.Payload;
 import io.rsocket.RSocketFactory;
+import io.rsocket.transport.netty.client.TcpClientTransport;
+import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.rsocket.util.DefaultPayload;
 import java.time.Duration;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class ServerRunner {
+public class TcpServerRunner {
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) throws InterruptedException {
+    String host = "localhost";
+    int port = 7000;
 
     // start server
     RSocketFactory.receive()
@@ -27,25 +31,17 @@ public class ServerRunner {
                             .map(aLong -> DefaultPayload.create("Interval: " + aLong));
                       }
                     }))
-        .transport(
-            () ->
-                new AeronServerTransport(options -> options.serverChannel(Channels.serverChannel)))
+        .transport(TcpServerTransport.create(host, port))
         .start()
         .subscribe();
 
     // start client
     RSocketFactory.connect()
-        .transport(
-            () ->
-                new AeronClientTransport(
-                    options -> {
-                      options.serverChannel(Channels.serverChannel);
-                      options.clientChannel(Channels.clientChannel);
-                    }))
+        .transport(() -> TcpClientTransport.create(host, port))
         .start()
         .subscribe(
             rSocket -> {
-              System.err.println("start " + rSocket);
+              System.err.println("rsocket connected " + rSocket);
 
               rSocket
                   .requestStream(DefaultPayload.create("Hello"))
