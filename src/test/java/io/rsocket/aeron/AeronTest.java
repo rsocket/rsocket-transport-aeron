@@ -12,10 +12,12 @@ import io.rsocket.util.DefaultPayload;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.WorkQueueProcessor;
 
+@Ignore
 public class AeronTest {
   public static final String aeronUrl = "aeron:udp?endpoint=127.0.0.1:39790";
   
