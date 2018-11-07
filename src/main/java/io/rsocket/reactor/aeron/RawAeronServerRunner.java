@@ -15,6 +15,7 @@ public class RawAeronServerRunner {
     server
         .newHandler(
             (inbound, outbound) -> {
+              System.err.println("RawAeronServerRunner add duplex conn to handler");
               inbound.receive().asString().log("server receive -> ").subscribe();
 
               outbound

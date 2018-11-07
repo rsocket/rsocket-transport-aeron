@@ -24,11 +24,12 @@ public class AeronServerWrapper implements Closeable {
     server
         .newHandler(
             (inbound, outbound) -> {
-              System.err.println("AeronServerWrapper add duplex conn to handler");
+              System.err.println(
+                  "AeronServerWrapper handler triggers only when a client connects to server");
               AeronDuplexConnection duplexConnection = new AeronDuplexConnection(inbound, outbound);
               return acceptor
                   .apply(duplexConnection)
-                  .log("AeronServerWrapper acceptor apply")
+                  .log("AeronServerWrapper Acceptor apply duplex ")
                   .doOnSuccess(s -> System.err.println("AeronServerWrapper is started"))
                   .then(
                       onClose.doFinally(
@@ -37,7 +38,10 @@ public class AeronServerWrapper implements Closeable {
                             duplexConnection.dispose();
                           }));
             })
-        .subscribe(); // todo fix it
+        .log("AeronServerWrapper newHandler ")
+        .block(); // todo fix it
+
+    System.err.println("AeronServerWrapper finishes its setup");
   }
 
   @Override
